@@ -6,7 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 interface AnalysisResultsProps {
   result: {
-    output: string;
+    output: {
+      plant_name: string;
+      disease: string;
+      disease_detected: boolean;
+      prevention: string[];
+    };
   };
   onStartOver: () => void;
 }
@@ -14,37 +19,12 @@ interface AnalysisResultsProps {
 const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
   const navigate = useNavigate();
 
-  const parseMarkdown = (text: string) => {
-    const sections = text.split('\n\n');
-    const parsedData = {
-      plant: '',
-      disease: '',
-      summary: '',
-      cures: [] as string[]
-    };
-
-    sections.forEach(section => {
-      if (section.startsWith('Plant:')) {
-        parsedData.plant = section.replace('Plant:', '').trim().replace(/\*\*/g, '');
-      } else if (section.startsWith('Disease:')) {
-        parsedData.disease = section.replace('Disease:', '').trim().replace(/\*\*/g, '');
-      } else if (section.startsWith('Summary:')) {
-        parsedData.summary = section.replace('Summary:', '').trim();
-      } else if (section.includes('Cure & Prevention:')) {
-        const cureSection = section.split('Cure & Prevention:')[1];
-        if (cureSection) {
-          parsedData.cures = cureSection
-            .split('\n*')
-            .filter(cure => cure.trim().length > 0)
-            .map(cure => cure.trim().replace(/^\s*\*\s*/, '').replace(/^   \*/, ''));
-        }
-      }
-    });
-
-    return parsedData;
+  const analysis = {
+    plant: result.output.plant_name,
+    disease: result.output.disease,
+    diseaseDetected: result.output.disease_detected,
+    cures: result.output.prevention
   };
-
-  const analysis = parseMarkdown(result.output);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 py-8">
@@ -96,14 +76,6 @@ const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
               </Badge>
             </Card>
           </div>
-
-          {/* Summary */}
-          <Card className="p-8 shadow-strong bg-gradient-card border-0">
-            <h3 className="text-2xl font-semibold text-foreground mb-6">Disease Summary</h3>
-            <p className="text-muted-foreground leading-relaxed text-lg">
-              {analysis.summary}
-            </p>
-          </Card>
 
           {/* Treatment Recommendations */}
           <Card className="p-8 shadow-strong bg-gradient-card border-0">
