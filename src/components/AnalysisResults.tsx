@@ -25,18 +25,18 @@ const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
 
     sections.forEach(section => {
       if (section.startsWith('Plant:')) {
-        parsedData.plant = section.replace('Plant:', '').trim();
+        parsedData.plant = section.replace('Plant:', '').trim().replace(/\*\*/g, '');
       } else if (section.startsWith('Disease:')) {
-        parsedData.disease = section.replace('Disease:', '').trim();
+        parsedData.disease = section.replace('Disease:', '').trim().replace(/\*\*/g, '');
       } else if (section.startsWith('Summary:')) {
         parsedData.summary = section.replace('Summary:', '').trim();
       } else if (section.includes('Cure & Prevention:')) {
         const cureSection = section.split('Cure & Prevention:')[1];
         if (cureSection) {
           parsedData.cures = cureSection
-            .split('*')
+            .split('\n*')
             .filter(cure => cure.trim().length > 0)
-            .map(cure => cure.trim().replace(/^\s*\*\s*/, ''));
+            .map(cure => cure.trim().replace(/^\s*\*\s*/, '').replace(/^   \*/, ''));
         }
       }
     });
