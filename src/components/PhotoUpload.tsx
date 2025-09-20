@@ -46,9 +46,22 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
     setIsAnalyzing(true);
     const formData = new FormData();
     formData.append('image', selectedImage);
+    
+    const n8nUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+    console.log("N8N URL:", n8nUrl);
+    
+    if (!n8nUrl) {
+      toast({
+        title: "Configuration Error",
+        description: "N8N webhook URL is not configured.",
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+      return;
+    }
 
     try {
-      const response = await fetch('https://regular-yeti-vaguely.ngrok-free.app/webhook-test/07c6d566-5ee3-4679-ac19-eeba0c9c4adf', {
+      const response = await fetch(n8nUrl, {
         method: 'POST',
         body: formData,
       });
