@@ -14,13 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          trials_remaining: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          trials_remaining?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          trials_remaining?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          disease: string
+          disease_detected: boolean
+          id: string
+          image_url: string | null
+          plant_name: string
+          prevention: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          disease: string
+          disease_detected?: boolean
+          id?: string
+          image_url?: string | null
+          plant_name: string
+          prevention?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          disease?: string
+          disease_detected?: boolean
+          id?: string
+          image_url?: string | null
+          plant_name?: string
+          prevention?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      use_trial: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
