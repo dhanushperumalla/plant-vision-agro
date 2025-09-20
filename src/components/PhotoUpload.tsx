@@ -70,22 +70,34 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
     formData.append('image', selectedImage);
 
     try {
-      // Use trial first
-      const { data: trialUsed, error: trialError } = await supabase.rpc('use_trial', {
-        user_uuid: user.id
-      });
-
-      if (trialError || !trialUsed) {
-        throw new Error('Failed to use trial');
+      const n8n_url = import.meta.env.VITE_N8N_WEBHOOK_URL;
+      
+      // Debug logging to check if URL is properly loaded
+      // console.log('N8N Webhook URL:', n8n_url);
+      // console.log('Current origin:', window.location.origin);
+      
+      if (!n8n_url) {
+        throw new Error('N8N webhook URL is not configured. Please check your environment variables.');
       }
-
-      const response = await fetch('https://regular-yeti-vaguely.ngrok-free.app/webhook-test/07c6d566-5ee3-4679-ac19-eeba0c9c4adf', {
+      
+      // Use proxy endpoint to avoid CORS issues
+      // Extract the webhook path from the environment variable
+      const webhookPath = n8n_url.replace(/^https?:\/\/[^\/]+/, '');
+      const proxyUrl = `/api/n8n${webhookPath}`;
+      
+      // console.log('Webhook URL:', n8n_url);
+      // console.log('Webhook Path:', webhookPath);
+      // console.log('Proxy URL:', proxyUrl);
+      
+      const response = await fetch(proxyUrl, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze image');
+        const errorText = await response.text();
+        console.error('N8N webhook error:', response.status, errorText);
+        throw new Error(`Failed to analyze image: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -104,6 +116,16 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
 
       if (saveError) {
         console.error('Error saving report:', saveError);
+        throw new Error('Failed to save report');
+      }
+
+      // Use trial only after successful analysis and report saving
+      const { data: trialUsed, error: trialError } = await supabase.rpc('use_trial', {
+        user_uuid: user.id
+      });
+
+      if (trialError || !trialUsed) {
+        throw new Error('Failed to use trial');
       }
 
       // Refresh profile to update trials remaining
@@ -117,9 +139,26 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
       });
     } catch (error) {
       console.error('Error analyzing image:', error);
+      
+      let errorMessage = "There was an error analyzing your image. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('N8N webhook URL is not configured')) {
+          errorMessage = "Configuration error: N8N webhook URL is missing. Please contact support.";
+        } else if (error.message.includes('Failed to analyze image:')) {
+          errorMessage = `Server error: ${error.message}`;
+        } else if (error.message.includes('Failed to save report')) {
+          errorMessage = "Analysis completed but failed to save results. Please try again.";
+        } else if (error.message.includes('Failed to use trial')) {
+          errorMessage = "Analysis completed but failed to update trial count. Please refresh and try again.";
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+          errorMessage = "Network error: Unable to connect to the analysis service. This might be due to CORS policy or network connectivity issues. Please check your N8N webhook configuration.";
+        }
+      }
+      
       toast({
         title: "Analysis Failed",
-        description: "There was an error analyzing your image. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

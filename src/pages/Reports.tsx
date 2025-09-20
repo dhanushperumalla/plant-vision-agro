@@ -5,7 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Leaf, AlertTriangle, ChevronLeft } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Calendar, Leaf, AlertTriangle, ChevronLeft, Trash2 } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,19 +35,14 @@ const Reports = () => {
   const { user, loading } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   useEffect(() => {
-    fetchReports();
+    if (user) {
+      fetchReports();
+    }
   }, [user]);
 
   const fetchReports = async () => {
@@ -68,6 +74,50 @@ const Reports = () => {
       day: 'numeric',
     });
   };
+
+  const deleteReport = async (reportId: string) => {
+    if (!user) return;
+
+    setDeletingReportId(reportId);
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', reportId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Remove the report from the local state
+      setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+
+      toast({
+        title: "Report Deleted",
+        description: "The analysis report has been successfully deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast({
+        title: "Error deleting report",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingReportId(null);
+    }
+  };
+
+  // Early returns after all hooks are declared
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (isLoading) {
     return (
@@ -124,13 +174,45 @@ const Reports = () => {
                         {formatDate(report.created_at)}
                       </CardDescription>
                     </div>
-                    <Badge 
-                      variant={report.disease_detected ? "destructive" : "default"}
-                      className="flex items-center gap-1"
-                    >
-                      {report.disease_detected && <AlertTriangle className="h-3 w-3" />}
-                      {report.disease_detected ? "Disease Detected" : "Healthy"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={report.disease_detected ? "destructive" : "default"}
+                        className="flex items-center gap-1"
+                      >
+                        {report.disease_detected && <AlertTriangle className="h-3 w-3" />}
+                        {report.disease_detected ? "Disease Detected" : "Healthy"}
+                      </Badge>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            disabled={deletingReportId === report.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this analysis report for "{report.plant_name}"? 
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteReport(report.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
 

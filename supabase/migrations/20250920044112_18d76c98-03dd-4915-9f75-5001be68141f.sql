@@ -53,6 +53,11 @@ ON public.reports
 FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can delete their own reports" 
+ON public.reports 
+FOR DELETE 
+USING (auth.uid() = user_id);
+
 -- Function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
