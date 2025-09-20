@@ -32,39 +32,60 @@ export default async function handler(req, res) {
 
     console.log('Proxying request to:', webhookUrl);
 
-    // Forward the request to N8N webhook
+    // Forward the request to N8N webhook with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'ngrok-skip-browser-warning': 'true',
       },
       body: req.body,
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     console.log('N8N response status:', response.status);
 
     // Get the response data
     const data = await response.text();
     console.log('N8N response data length:', data.length);
+    console.log('N8N response data preview:', data.substring(0, 200));
     
     // Set appropriate headers
     res.status(response.status);
     
-    // Try to parse as JSON, if not possible, send as text
+    // Always try to return JSON, even if the original response wasn't JSON
     try {
       const jsonData = JSON.parse(data);
+      console.log('Successfully parsed N8N response as JSON');
       res.json(jsonData);
     } catch (parseError) {
-      console.log('Response is not JSON, sending as text');
-      res.send(data);
+      console.log('N8N response is not JSON, wrapping in JSON response');
+      // If it's not JSON, wrap it in a JSON response
+      res.json({
+        success: false,
+        error: 'Invalid response format from N8N webhook',
+        rawResponse: data,
+        status: response.status
+      });
     }
   } catch (error) {
     console.error('Proxy error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      details: error.message,
-      stack: error.stack 
-    });
+    
+    if (error.name === 'AbortError') {
+      res.status(408).json({ 
+        error: 'Request timeout', 
+        message: 'N8N webhook did not respond within 25 seconds'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: error.stack 
+      });
+    }
   }
 }
 

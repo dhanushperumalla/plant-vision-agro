@@ -122,7 +122,23 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
         throw new Error(`Failed to analyze image: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
+      // Handle response more robustly
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        if (!responseText) {
+          throw new Error('Empty response from server');
+        }
+        
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response status:', response.status);
+        console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+        throw new Error('Invalid response format from server');
+      }
       
       // Save report to database
       const { error: saveError } = await supabase
