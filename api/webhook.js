@@ -74,6 +74,16 @@ export default async function handler(req, res) {
       filepath: imageFile.filepath
     });
 
+    // Log mobile optimization info
+    const isMobileRequest = req.headers['sec-ch-ua-mobile'] === '?1' || 
+                           req.headers['user-agent']?.includes('Mobile');
+    console.log('Mobile request detected:', isMobileRequest);
+    
+    // Warn if image is too large for mobile
+    if (imageFile.size > 5 * 1024 * 1024) { // 5MB
+      console.warn(`Large image detected: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB`);
+    }
+
     // Create a new FormData to send to N8N
     const formData = new FormData();
     
@@ -85,6 +95,7 @@ export default async function handler(req, res) {
       
       formData.append('image', blob, imageFile.originalFilename || 'image.jpg');
       console.log('Successfully created FormData with image blob');
+      console.log('Blob size:', blob.size, 'bytes');
     } catch (fileError) {
       console.error('Error reading uploaded file:', fileError);
       return res.status(500).json({
@@ -93,14 +104,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // Forward the request to N8N webhook with timeout
+    // Forward the request to N8N webhook with extended timeout for mobile
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeoutId = setTimeout(() => {
+      console.log('Request timeout after 60 seconds');
+      controller.abort();
+    }, 60000); // 60 second timeout for mobile networks
 
+    console.log('Sending request to N8N webhook...');
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'ngrok-skip-browser-warning': 'true',
+        'User-Agent': 'Plant-Vision-Agro/1.0',
       },
       body: formData,
       signal: controller.signal,
@@ -173,17 +189,32 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Proxy error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 500)
+    });
     
     if (error.name === 'AbortError') {
       res.status(408).json({ 
+        success: false,
         error: 'Request timeout', 
-        message: 'N8N webhook did not respond within 25 seconds'
+        message: 'N8N webhook did not respond within 60 seconds. This may be due to slow mobile network conditions. Please try again with a better connection.',
+        details: 'The request was aborted due to timeout. Mobile networks may require more time for image uploads.'
+      });
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      res.status(503).json({ 
+        success: false,
+        error: 'Service unavailable', 
+        message: 'Unable to connect to the N8N webhook service. Please check if the webhook URL is accessible.',
+        details: error.message
       });
     } else {
       res.status(500).json({ 
+        success: false,
         error: 'Internal server error', 
-        details: error.message,
-        stack: error.stack 
+        message: 'An unexpected error occurred while processing your request.',
+        details: error.message
       });
     }
   }
