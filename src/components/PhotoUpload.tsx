@@ -79,7 +79,7 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
         throw new Error('Failed to use trial');
       }
 
-      const response = await fetch('https://regular-yeti-vaguely.ngrok-free.app/webhook-test/07c6d566-5ee3-4679-ac19-eeba0c9c4adf', {
+      const response = await fetch('https://n8n.dhanushperumalla.me/webhook/07c6d566-5ee3-4679-ac19-eeba0c9c4adf', {
         method: 'POST',
         body: formData,
       });
