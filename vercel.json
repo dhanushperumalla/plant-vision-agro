@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/n8n/[...path].js": {
+    "api/webhook.js": {
       "maxDuration": 30
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/n8n/(.*)",
-      "destination": "/api/n8n/$1"
-    }
-  ]
+  }
 }

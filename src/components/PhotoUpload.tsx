@@ -96,8 +96,7 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
         });
       } else {
         // Production: Use API route to avoid CORS issues
-        const webhookPath = n8n_url.replace(/^https?:\/\/[^\/]+/, '');
-        const apiUrl = `/api/n8n${webhookPath}`;
+        const apiUrl = '/api/webhook';
         
         console.log('Production mode - using API route:', apiUrl);
         
