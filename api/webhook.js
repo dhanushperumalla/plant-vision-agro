@@ -57,29 +57,39 @@ export default async function handler(req, res) {
 
     const { files } = parseResult;
 
-    // Create a new FormData to send to N8N
-    const formData = new FormData();
-    
     // Add the image file to FormData
-    if (files.image) {
-      const imageFile = Array.isArray(files.image) ? files.image[0] : files.image;
-      console.log('Image file info:', {
-        name: imageFile.originalFilename,
-        size: imageFile.size,
-        type: imageFile.mimetype
-      });
-      
-      // Read the file and create a blob
-      const fs = require('fs');
-      const fileBuffer = fs.readFileSync(imageFile.filepath);
-      const blob = new Blob([fileBuffer], { type: imageFile.mimetype });
-      
-      formData.append('image', blob, imageFile.originalFilename || 'image.jpg');
-    } else {
+    if (!files.image) {
       console.error('No image file found in request');
       return res.status(400).json({ 
         error: 'No image file provided',
         details: 'Please include an image file in your request'
+      });
+    }
+
+    const imageFile = Array.isArray(files.image) ? files.image[0] : files.image;
+    console.log('Image file info:', {
+      name: imageFile.originalFilename,
+      size: imageFile.size,
+      type: imageFile.mimetype,
+      filepath: imageFile.filepath
+    });
+
+    // Create a new FormData to send to N8N
+    const formData = new FormData();
+    
+    try {
+      // Read the file using dynamic import for fs
+      const { readFileSync } = await import('fs');
+      const fileBuffer = readFileSync(imageFile.filepath);
+      const blob = new Blob([fileBuffer], { type: imageFile.mimetype || 'image/jpeg' });
+      
+      formData.append('image', blob, imageFile.originalFilename || 'image.jpg');
+      console.log('Successfully created FormData with image blob');
+    } catch (fileError) {
+      console.error('Error reading uploaded file:', fileError);
+      return res.status(500).json({
+        error: 'Failed to process uploaded file',
+        details: fileError.message
       });
     }
 
