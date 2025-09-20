@@ -95,6 +95,16 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
           body: formData,
         });
       } else {
+        // Production: Test API route first
+        console.log('Testing API route availability...');
+        
+        try {
+          const testResponse = await fetch('/api/test');
+          console.log('Test API response:', testResponse.status);
+        } catch (testError) {
+          console.error('Test API failed:', testError);
+        }
+        
         // Production: Use API route to avoid CORS issues
         const apiUrl = '/api/webhook';
         
