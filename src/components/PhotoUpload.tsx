@@ -80,19 +80,32 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
         throw new Error('N8N webhook URL is not configured. Please check your environment variables.');
       }
       
-      // Use proxy endpoint to avoid CORS issues
-      // Extract the webhook path from the environment variable
-      const webhookPath = n8n_url.replace(/^https?:\/\/[^\/]+/, '');
-      const proxyUrl = `/api/n8n${webhookPath}`;
+      // Use different endpoints for development vs production
+      let response;
       
-      // console.log('Webhook URL:', n8n_url);
-      // console.log('Webhook Path:', webhookPath);
-      // console.log('Proxy URL:', proxyUrl);
-      
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        body: formData,
-      });
+      if (import.meta.env.DEV) {
+        // Development: Use proxy endpoint to avoid CORS issues
+        const webhookPath = n8n_url.replace(/^https?:\/\/[^\/]+/, '');
+        const proxyUrl = `/api/n8n${webhookPath}`;
+        
+        // console.log('Development mode - using proxy:', proxyUrl);
+        
+        response = await fetch(proxyUrl, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Production: Use API route to avoid CORS issues
+        const webhookPath = n8n_url.replace(/^https?:\/\/[^\/]+/, '');
+        const apiUrl = `/api/n8n${webhookPath}`;
+        
+        console.log('Production mode - using API route:', apiUrl);
+        
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
