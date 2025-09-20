@@ -10,6 +10,7 @@ interface AnalysisResultsProps {
       plant_name: string;
       disease: string;
       disease_detected: boolean;
+      description: string;
       prevention: string[];
     };
   };
@@ -23,6 +24,7 @@ const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
     plant: result.output.plant_name,
     disease: result.output.disease,
     diseaseDetected: result.output.disease_detected,
+    description: result.output.description,
     cures: result.output.prevention
   };
 
@@ -76,6 +78,14 @@ const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
               </Badge>
             </Card>
           </div>
+
+          {/* Description */}
+          <Card className="p-8 shadow-strong bg-gradient-card border-0">
+            <h3 className="text-2xl font-semibold text-foreground mb-6">Disease Description</h3>
+            <p className="text-muted-foreground leading-relaxed text-lg">
+              {analysis.description}
+            </p>
+          </Card>
 
           {/* Treatment Recommendations */}
           <Card className="p-8 shadow-strong bg-gradient-card border-0">
