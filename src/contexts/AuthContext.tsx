@@ -116,7 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth?reset=true`;
+    // Use the current domain if it's working, otherwise fallback to Lovable domain
+    const currentOrigin = window.location.origin;
+    const redirectUrl = currentOrigin.includes('lovable.app') || currentOrigin.includes('localhost') 
+      ? `${currentOrigin}/auth?reset=true`
+      : `https://plant-vision-agro.lovable.app/auth?reset=true`;
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
