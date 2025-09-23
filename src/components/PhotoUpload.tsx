@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera, Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
+import { compressImage, formatFileSize } from "@/lib/imageCompression";
 
 interface PhotoUploadProps {
   onAnalysisResult: (result: any) => void;
@@ -15,6 +16,9 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [originalFileSize, setOriginalFileSize] = useState<number>(0);
+  const [compressedFileSize, setCompressedFileSize] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -28,14 +32,67 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (file && file.type.startsWith('image/')) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setOriginalFileSize(file.size);
+      
+      // Show file size warning for large files
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast({
+          title: "Large File Detected",
+          description: `Image size: ${formatFileSize(file.size)}. Compressing for faster upload...`,
+        });
+      }
+      
+      try {
+        setIsCompressing(true);
+        
+        // Compress the image to under 1MB
+        const compressedFile = await compressImage(file, {
+          maxSizeKB: 900, // Target 900KB to ensure we stay well under 1MB
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.8
+        });
+        
+        setSelectedImage(compressedFile);
+        setCompressedFileSize(compressedFile.size);
+        
+        // Show compression results
+        if (compressedFile.size < file.size) {
+          const reductionPercent = ((file.size - compressedFile.size) / file.size * 100).toFixed(1);
+          toast({
+            title: "Image Optimized",
+            description: `Reduced from ${formatFileSize(file.size)} to ${formatFileSize(compressedFile.size)} (${reductionPercent}% smaller)`,
+          });
+        }
+        
+        // Generate preview from compressed file
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+        
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        toast({
+          title: "Compression Failed",
+          description: "Using original image. Upload may be slower.",
+          variant: "destructive",
+        });
+        
+        // Fallback to original file
+        setSelectedImage(file);
+        setCompressedFileSize(file.size);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -50,6 +107,8 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
+    setOriginalFileSize(0);
+    setCompressedFileSize(0);
   };
 
   const analyzeImage = async () => {
@@ -60,6 +119,17 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
       toast({
         title: "No Trials Remaining",
         description: "You've used all your free trials. Please upgrade to continue analyzing plants.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Final file size check before upload
+    const fileSizeMB = selectedImage.size / (1024 * 1024);
+    if (fileSizeMB > 1.5) { // 1.5MB safety buffer
+      toast({
+        title: "File Too Large",
+        description: `Image is ${formatFileSize(selectedImage.size)}. Please try with a smaller image or contact support.`,
         variant: "destructive",
       });
       return;
@@ -183,6 +253,8 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
       if (error instanceof Error) {
         if (error.message.includes('N8N webhook URL is not configured')) {
           errorMessage = "Configuration error: N8N webhook URL is missing. Please contact support.";
+        } else if (error.message.includes('Failed to analyze image: 413')) {
+          errorMessage = "Image too large for server. This has been automatically fixed - please try uploading again.";
         } else if (error.message.includes('Failed to analyze image:')) {
           errorMessage = `Server error: ${error.message}`;
         } else if (error.message.includes('Failed to save report')) {
@@ -247,17 +319,37 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
                   variant="outline"
                   size="lg"
                   className="h-14 border-green-500 text-green-600 hover:bg-green-50"
+                  disabled={isCompressing}
                 >
-                  <Upload className="mr-2 h-5 w-5" />
-                  Upload Photo
+                  {isCompressing ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Compressing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-5 w-5" />
+                      Upload Photo
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={handleCameraClick}
                   size="lg"
                   className="h-14 bg-green-600 text-white hover:bg-green-700"
+                  disabled={isCompressing}
                 >
-                  <Camera className="mr-2 h-5 w-5" />
-                  Take Photo
+                  {isCompressing ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Compressing...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="mr-2 h-5 w-5" />
+                      Take Photo
+                    </>
+                  )}
                 </Button>
               </div>
 
@@ -302,6 +394,16 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
               </div>
 
               <div className="text-center space-y-4">
+                {compressedFileSize > 0 && (
+                  <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded">
+                    📁 File size: {formatFileSize(compressedFileSize)}
+                    {originalFileSize > compressedFileSize && (
+                      <span className="text-green-600 ml-1">
+                        (reduced from {formatFileSize(originalFileSize)})
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-gray-600">
                   Ready to analyze your plant photo
                 </p>
