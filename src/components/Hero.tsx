@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Upload, Leaf, Shield, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-farmer.jpg";
+const heroImageUrl = "/lovable-uploads/cf1db5c6-3aec-476e-b9a7-6b24759f63ef.png";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -76,8 +76,8 @@ const Hero = () => {
           <div className="relative">
             <Card className="overflow-hidden shadow-strong bg-gradient-card border-0">
               <img 
-                src={heroImage} 
-                alt="Indian farmer in crop field using modern agricultural technology" 
+                src={heroImageUrl} 
+                alt="Indian farmer in green crop field wearing orange turban" 
                 className="w-full h-[500px] object-cover"
               />
             </Card>
