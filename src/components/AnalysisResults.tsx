@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, Leaf, ArrowLeft } from "lucide-react";
+import { CheckCircle, AlertTriangle, Leaf, ArrowLeft, Beaker, Sprout, Calendar, Pill } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface AnalysisResultsProps {
@@ -12,6 +12,9 @@ interface AnalysisResultsProps {
       disease_detected: boolean;
       description: string;
       prevention: string[];
+      required_nutrients?: string;
+      recommended_pesticides_or_fertilizers?: string;
+      stage?: string;
     };
   };
   onStartOver: () => void;
@@ -57,55 +60,102 @@ const AnalysisResults = ({ result, onStartOver }: AnalysisResultsProps) => {
           </div>
         </div>
 
-        <div className="grid gap-8">
-          {/* Plant & Disease Info */}
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-6">
+          {/* Overview Cards */}
+          <div className="grid md:grid-cols-3 gap-4">
             <Card className="p-6 shadow-strong bg-gradient-card border-0">
               <div className="flex items-center space-x-3 mb-4">
                 <Leaf className="h-6 w-6 text-primary" />
-                <h3 className="text-xl font-semibold text-foreground">Plant Identified</h3>
+                <h3 className="text-lg font-semibold text-foreground">Plant Identified</h3>
               </div>
-              <p className="text-lg text-foreground font-medium">{analysis.plant}</p>
+              <p className="text-xl text-foreground font-bold">{analysis.plant}</p>
             </Card>
 
             <Card className="p-6 shadow-strong bg-gradient-card border-0">
               <div className="flex items-center space-x-3 mb-4">
-                <AlertTriangle className="h-6 w-6 text-warning" />
-                <h3 className="text-xl font-semibold text-foreground">Disease Detected</h3>
+                <Calendar className="h-6 w-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-foreground">Growth Stage</h3>
               </div>
-              <Badge variant="destructive" className="text-sm">
-                {analysis.disease}
+              <p className="text-xl text-foreground font-bold">
+                {result.output.stage || "Not specified"}
+              </p>
+            </Card>
+
+            <Card className="p-6 shadow-strong bg-gradient-card border-0">
+              <div className="flex items-center space-x-3 mb-4">
+                <AlertTriangle className={`h-6 w-6 ${analysis.diseaseDetected ? 'text-red-600' : 'text-green-600'}`} />
+                <h3 className="text-lg font-semibold text-foreground">Health Status</h3>
+              </div>
+              <Badge variant={analysis.diseaseDetected ? "destructive" : "default"} className="text-sm font-bold">
+                {analysis.diseaseDetected ? analysis.disease : "Healthy"}
               </Badge>
             </Card>
           </div>
 
-          {/* Description */}
-          <Card className="p-8 shadow-strong bg-gradient-card border-0">
-            <h3 className="text-2xl font-semibold text-foreground mb-6">Disease Description</h3>
-            <p className="text-muted-foreground leading-relaxed text-lg">
-              {analysis.description}
-            </p>
-          </Card>
+          {/* Disease Description */}
+          {analysis.diseaseDetected && (
+            <Card className="p-8 shadow-strong bg-gradient-card border-0">
+              <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
+                <AlertTriangle className="mr-3 h-6 w-6 text-warning" />
+                Disease Information
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-lg">
+                {analysis.description}
+              </p>
+            </Card>
+          )}
 
-          {/* Treatment Recommendations */}
+          {/* Nutritional Requirements */}
+          {result.output.required_nutrients && (
+            <Card className="p-8 shadow-strong bg-gradient-card border-0">
+              <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
+                <Beaker className="mr-3 h-6 w-6 text-green-600" />
+                Nutritional Requirements
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-lg">
+                {result.output.required_nutrients}
+              </p>
+            </Card>
+          )}
+
+          {/* Recommended Treatments */}
+          {result.output.recommended_pesticides_or_fertilizers && (
+            <Card className="p-8 shadow-strong bg-gradient-card border-0">
+              <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
+                <Pill className="mr-3 h-6 w-6 text-blue-600" />
+                Recommended Treatments
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-lg">
+                {result.output.recommended_pesticides_or_fertilizers}
+              </p>
+            </Card>
+          )}
+
+          {/* Prevention & Care Instructions */}
           <Card className="p-8 shadow-strong bg-gradient-card border-0">
             <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
-              <CheckCircle className="mr-3 h-6 w-6 text-success" />
-              Treatment & Prevention
+              <Sprout className="mr-3 h-6 w-6 text-green-600" />
+              Prevention & Care Instructions
             </h3>
             <div className="space-y-6">
-              {analysis.cures.map((cure, index) => {
-                const [title, ...description] = cure.split(':');
+              {analysis.cures.map((prevention, index) => {
+                const [title, ...description] = prevention.split(':');
                 return (
-                  <div key={index} className="flex space-x-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
+                  <div key={index} className="flex space-x-4 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                    <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-foreground mb-2">{title.trim()}</h4>
-                      {description.length > 0 && (
-                        <p className="text-muted-foreground leading-relaxed">
-                          {description.join(':').trim()}
+                      {description.length > 0 ? (
+                        <>
+                          <h4 className="font-semibold text-green-900 mb-2">{title.trim()}</h4>
+                          <p className="text-green-800 leading-relaxed">
+                            {description.join(':').trim()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-green-800 leading-relaxed font-medium">
+                          {title.trim()}
                         </p>
                       )}
                     </div>

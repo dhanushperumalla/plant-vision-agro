@@ -219,7 +219,10 @@ const PhotoUpload = ({ onAnalysisResult }: PhotoUploadProps) => {
           disease: result.output.disease,
           disease_detected: result.output.disease_detected,
           description: result.output.description,
-          prevention: result.output.prevention
+          prevention: result.output.prevention,
+          required_nutrients: result.output.required_nutrients || null,
+          recommended_pesticides_or_fertilizers: result.output.recommended_pesticides_or_fertilizers || null,
+          stage: result.output.stage || null
         });
 
       if (saveError) {
