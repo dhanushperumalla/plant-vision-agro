@@ -18,12 +18,12 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-2">
               <Leaf className="h-8 w-8 text-green-600" />
-              <h1 className="text-2xl font-bold text-green-700">AgroVision</h1>
+              <h1 className="text-2xl font-bold text-green-700">Plant Disease Analyzer</h1>
             </div>
             <Link to="/auth">
               <Button>Sign In / Sign Up</Button>
@@ -36,13 +36,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">
             <Leaf className="h-8 w-8 text-green-600" />
-            <h1 className="text-2xl font-bold text-green-700">AgroVision</h1>
+            <h1 className="text-2xl font-bold text-green-700">Plant Disease Analyzer</h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
