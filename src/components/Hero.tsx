@@ -8,7 +8,7 @@ const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
